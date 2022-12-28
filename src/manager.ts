@@ -1,9 +1,10 @@
 import {
+  MultiWithdrawEthCall,
   RoleAdminChanged as RoleAdminChangedEvent,
   RoleGranted as RoleGrantedEvent,
   RoleRevoked as RoleRevokedEvent
 } from "../generated/Manager/Manager"
-import { RoleAdminChanged, RoleGranted, RoleRevoked } from "../generated/schema"
+import { RoleAdminChanged, RoleGranted, RoleRevoked, Transaction, Batch } from "../generated/schema"
 
 export function handleRoleAdminChanged(event: RoleAdminChangedEvent): void {
   let entity = new RoleAdminChanged(
@@ -48,4 +49,30 @@ export function handleRoleRevoked(event: RoleRevokedEvent): void {
   entity.transactionHash = event.transaction.hash
 
   entity.save()
+}
+
+// multi whitdraw eth handler
+export function handleMultiWithdrawEth(func: MultiWithdrawEthCall): void {
+  // define a string
+  let batchId: string = func.transaction.hash.toHexString()
+  let batch = new Batch(
+    batchId
+  )
+  batch.blockTimestamp = func.block.timestamp;
+  batch.save()
+
+  // for recipient in recipients
+  func.inputs.recipients.forEach(r => {
+    let transaction = new Transaction(
+      batchId + (r.to.toHexString())
+    )
+    transaction.save()
+
+    transaction.value = r.amount
+    transaction.to = r.to
+    transaction.batch = batchId
+    transaction.save()
+  });
+
+
 }
